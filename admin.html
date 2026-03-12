@@ -1,109 +1,387 @@
-// Nexus AI — api/admin.js (full version with update/delete/stats)
-const crypto = require('crypto');
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><title>Nexus AI — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#10b981;--primary-h:#059669;--primary-l:#d1fae5;--primary-m:#a7f3d0;--bg:#f5f6fa;--white:#fff;--text:#111827;--text2:#374151;--text3:#6b7280;--text4:#9ca3af;--border:#e5e7eb;--border2:#f3f4f6;--red:#ef4444;--red-l:#fee2e2;--orange:#f97316;--orange-l:#ffedd5;--blue:#3b82f6;--blue-l:#dbeafe;--purple:#8b5cf6;--purple-l:#ede9fe;--shadow:0 1px 3px rgba(0,0,0,.08)}
+html,body{height:100%;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;font-size:13px}
+body{background:var(--bg)}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:99px}
+.layout{display:grid;grid-template-columns:230px 1fr;height:100vh;overflow:hidden}
+.sidebar{background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-top{padding:18px 16px 12px;border-bottom:1px solid var(--border2);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-ico{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-name{font-size:16px;font-weight:800;color:var(--text)}.logo-tag{font-size:10px;color:var(--text4);margin-top:1px}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 10px}
+.nav-sec{font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.6px;padding:10px 8px 5px;margin-top:4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text3);transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--border2);color:var(--text2)}.nav-item.on{background:var(--primary-l);color:var(--primary);font-weight:600;border-color:var(--primary-m)}
+.nav-ico{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--primary);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px}.nbadge.gray{background:var(--border);color:var(--text4)}
+.sb-foot{border-top:1px solid var(--border);padding:10px 12px;flex-shrink:0}
+.user-card{display:flex;align-items:center;gap:9px;padding:9px 10px;background:var(--border2);border-radius:9px;margin-bottom:8px}
+.uav{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}
+.u-n{font-size:12px;font-weight:700;color:var(--text)}.u-r{font-size:10px;color:var(--primary);margin-top:1px}
+.sb-btn{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text3);transition:all .15s}.sb-btn:hover{background:var(--border2);color:var(--text2)}.sb-btn.red{color:var(--red);font-weight:600}
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tb-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.tb-sub{font-size:11px;color:var(--text4);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--text2);font-family:'Inter',sans-serif;display:flex;align-items:center;gap:5px}
+.btn:hover{background:var(--border2)}.btn.p{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600}.btn.p:hover{background:var(--primary-h)}.btn.r{background:var(--red-l);color:var(--red);border-color:#fecaca}.btn.r:hover{background:#fee2e2}
+.content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow)}.cp{padding:18px}
+.ct{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px}.cs{font-size:11px;color:var(--text4);margin-top:2px}
+.mrow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.mc{background:var(--white);border:1px solid var(--border);border-radius:11px;padding:16px;box-shadow:var(--shadow)}
+.mc-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:12px}
+.mc-v{font-size:26px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}
+.mc-l{font-size:11px;color:var(--text4);margin-top:4px;font-weight:500}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center}
+.b-g{background:var(--primary-l);color:var(--primary)}.b-r{background:var(--red-l);color:var(--red)}.b-b{background:var(--blue-l);color:var(--blue)}.b-o{background:var(--orange-l);color:var(--orange)}.b-p{background:var(--purple-l);color:var(--purple)}.b-gray{background:var(--border2);color:var(--text4)}
+.tbl{width:100%;border-collapse:collapse}.tbl th{font-size:10px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;text-align:left;background:var(--border2);border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:11px 14px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border2);vertical-align:middle}.tbl tr:last-child td{border-bottom:none}.tbl tbody tr:hover td{background:#fafafa}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0}
+.toggle{width:36px;height:20px;border-radius:99px;border:none;cursor:pointer;transition:background .2s;position:relative;flex-shrink:0}.toggle.on{background:var(--primary)}.toggle.off{background:#d1d5db}.toggle::after{content:'';position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}.toggle.on::after{left:18px}.toggle.off::after{left:2px}
+.ovl{position:fixed;inset:0;background:rgba(17,24,39,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;animation:fi .15s}@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--white);border-radius:14px;padding:28px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 10px 30px rgba(0,0,0,.12);animation:su .18s}@keyframes su{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.mt{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}.ms{font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.5}
+.fg{margin-bottom:14px}.fl{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--border2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);outline:none;transition:all .2s;font-family:'Inter',sans-serif}.fi:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 3px rgba(16,185,129,.1)}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+.bc{padding:8px 16px;background:#fff;border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);font-family:'Inter',sans-serif}.bc:hover{background:var(--border2)}
+.bok{padding:8px 20px;background:var(--primary);border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;color:#fff;font-family:'Inter',sans-serif}.bok:hover{background:var(--primary-h)}.bok.red{background:var(--red)}.bok.red:hover{background:#dc2626}.bok:disabled{opacity:.4;cursor:not-allowed}
+.plan-row{display:flex;gap:8px;margin-bottom:14px}.plan-opt{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;cursor:pointer;transition:all .18s}.plan-opt:hover{border-color:var(--primary-m)}.plan-opt.on{border-color:var(--primary);background:var(--primary-l)}.pn{font-size:12px;font-weight:700;color:var(--text)}.pp{font-size:11px;color:var(--text4)}
+.code{background:#1e293b;color:#e2e8f0;border-radius:9px;padding:14px;font-family:'Monaco','Menlo',monospace;font-size:11px;line-height:1.7;overflow-x:auto;word-break:break-all;cursor:pointer}.code:hover{background:#0f172a}
+.sb{background:var(--border2);border-radius:9px;padding:13px;margin-bottom:8px}
+.srow{display:flex;gap:10px;align-items:flex-start}.sn{width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}.st{font-size:12px;color:var(--text2);line-height:1.6}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--text);color:#fff;border-radius:9px;padding:11px 16px;font-size:12px;font-weight:500;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:su .2s;display:flex;align-items:center;gap:8px;max-width:320px}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab-btn{padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text4);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-family:'Inter',sans-serif}.tab-btn.on{color:var(--primary);border-bottom-color:var(--primary)}.tab-btn:hover{color:var(--text2)}
+.irow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border2);font-size:12px}.irow:last-child{border-bottom:none}.il{color:var(--text3);font-weight:500}.iv{font-weight:600;color:var(--text)}
+.pb{height:6px;background:var(--border2);border-radius:99px;overflow:hidden;margin-top:4px}.pf{height:100%;border-radius:99px;background:var(--primary);transition:width .4s}
+.nc{padding:5px 12px;border:1.5px solid var(--border);border-radius:99px;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;background:#fff;white-space:nowrap}.nc.on{border-color:var(--primary);background:var(--primary-l);color:var(--primary);font-weight:600}.nc:hover{border-color:var(--primary-m)}
+.alert-ok{padding:10px 13px;background:var(--primary-l);border:1px solid var(--primary-m);border-radius:8px;font-size:12px;color:#065f46;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="sidebar">
+    <div class="sb-top">
+      <div class="logo">
+        <div class="logo-ico"><svg width="20" height="20" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L15.5 5.25V12.75L9 16.5L2.5 12.75V5.25L9 1.5Z" stroke="white" stroke-width="1.3" fill="rgba(255,255,255,.2)"/><path d="M6.5 12V6.5L9 9.5V6.5M11.5 6.5V12" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><div class="logo-name">Nexus AI</div><div class="logo-tag">Painel Admin</div></div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="nav-sec">Principal</div>
+      <div class="nav-item on" id="ni-dashboard" onclick="go('dashboard',this)"><span class="nav-ico">📊</span>Dashboard</div>
+      <div class="nav-item" id="ni-clients" onclick="go('clients',this)"><span class="nav-ico">👥</span>Clientes<span class="nbadge gray" id="n-clients">0</span></div>
+      <div class="nav-item" id="ni-add" onclick="go('add',this)"><span class="nav-ico">➕</span>Adicionar Cliente</div>
+      <div class="nav-sec">Ferramentas</div>
+      <div class="nav-item" id="ni-messages" onclick="go('messages',this)"><span class="nav-ico">💬</span>Mensagens</div>
+      <div class="nav-item" id="ni-plans" onclick="go('plans',this)"><span class="nav-ico">💳</span>Planos & Limites</div>
+      <div class="nav-sec">Sistema</div>
+      <div class="nav-item" id="ni-setup" onclick="go('setup',this)"><span class="nav-ico">⚙️</span>Configurações</div>
+    </nav>
+    <div class="sb-foot">
+      <div class="user-card"><div class="uav" id="adm-av">A</div><div><div class="u-n" id="adm-n">Admin</div><div class="u-r">● Administrador</div></div></div>
+      <div class="sb-btn red" onclick="logout()"><span>🚪</span><span>Sair da conta</span></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div><div class="tb-title" id="pg-title">Dashboard</div><div class="tb-sub" id="pg-sub">Visão geral da plataforma</div></div>
+      <div class="tb-right">
+        <button class="btn" onclick="loadAll()">🔄 Atualizar</button>
+        <button class="btn p" onclick="go('add',document.getElementById('ni-add'))">➕ Novo Cliente</button>
+      </div>
+    </div>
+    <div class="content" id="content"><div style="text-align:center;padding:40px;color:#9ca3af">Carregando...</div></div>
+  </div>
+</div>
+<div id="toast" style="display:none" class="toast"></div>
+<div id="movl" style="display:none" class="ovl" onclick="if(event.target===this)cm()"><div class="modal" id="mbox"></div></div>
 
-const SECRET = process.env.JWT_SECRET || 'nexus-secret-change-this';
+<script>
+const TK=localStorage.getItem('nexus_token');
+const ADM=JSON.parse(localStorage.getItem('nexus_user')||'{}');
+const CLR=['#10b981','#3b82f6','#8b5cf6','#f97316','#ef4444','#0891b2','#d97706'];
+const PRICES={starter:97,pro:197,agency:497};
+const LIMITS={starter:200,pro:1000,agency:9999};
+const NICHES=[{id:'sales',i:'💼',n:'Vendas Gerais'},{id:'law',i:'⚖️',n:'Jurídico'},{id:'med',i:'🏥',n:'Saúde'},{id:'imob',i:'🏠',n:'Imóveis'},{id:'fashion',i:'👗',n:'Moda'},{id:'ecom',i:'🛒',n:'E-commerce'}];
+if(!TK||ADM.role!=='admin')window.location.href='/login.html';
+document.getElementById('adm-n').textContent=ADM.name||'Admin';
+document.getElementById('adm-av').textContent=(ADM.name||'A').charAt(0).toUpperCase();
+let users=[],cur='dashboard',ePlan=null,nPlan='starter',nNiche='sales';
 
-function verifyToken(token) {
-  try {
-    if (!token) return null;
-    const dot  = token.lastIndexOf('.');
-    const data = token.slice(0, dot);
-    const sig  = token.slice(dot + 1);
-    const expected = crypto.createHmac('sha256', SECRET).update(data).digest('hex');
-    if (sig !== expected) return null;
-    const json = Buffer.from(data.replace(/-/g,'+').replace(/_/g,'/'), 'base64').toString();
-    const payload = JSON.parse(json);
-    if (payload.exp < Date.now()) return null;
-    return payload;
-  } catch(e) { return null; }
+async function apicall(action,extra={}){
+  const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+TK},body:JSON.stringify({action,...extra})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'Erro');return d;
 }
-function hashPwd(str) {
-  return crypto.createHash('sha256').update(str + SECRET).digest('hex');
+async function loadAll(){
+  try{const d=await apicall('list');users=d.users||[];document.getElementById('n-clients').textContent=users.length;render();}
+  catch(e){toast('❌ '+e.message);}
 }
-function getUsers() {
-  try { return JSON.parse(process.env.USERS_JSON || '[]'); } catch { return []; }
+const METAS={dashboard:['Dashboard','Visão geral'],clients:['Clientes','Gerencie seus clientes'],add:['Adicionar Cliente','Cadastre um novo cliente'],messages:['Mensagens','Envie avisos para clientes'],plans:['Planos & Limites','Configure planos'],setup:['Configurações','Variáveis e sistema']};
+function go(page,el){
+  cur=page;
+  const[t,s]=METAS[page]||['',''];
+  document.getElementById('pg-title').textContent=t;
+  document.getElementById('pg-sub').textContent=s;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
+  if(el)el.classList.add('on');
+  render();
+}
+function render(){({dashboard:rDash,clients:rClients,add:rAdd,messages:rMsgs,plans:rPlans,setup:rSetup}[cur]||rDash)();}
+
+/* ─── DASHBOARD ─── */
+function rDash(){
+  const act=users.filter(u=>u.active).length;
+  const mrr=users.filter(u=>u.active).reduce((s,u)=>s+(PRICES[u.plan]||97),0);
+  const nm=users.filter(u=>u.created&&new Date(u.created).getMonth()===new Date().getMonth()).length;
+  const bp={starter:0,pro:0,agency:0};users.forEach(u=>{if(bp[u.plan]!==undefined)bp[u.plan]++;});
+  set(`<div class="mrow">
+    ${mc('👥','#d1fae5',users.length,'Total Clientes')}
+    ${mc('✅','#dbeafe',act,'Clientes Ativos')}
+    ${mc('💰','#ffedd5','R$'+mrr.toLocaleString('pt-BR'),'MRR Estimado')}
+    ${mc('🆕','#ede9fe',nm,'Novos este mês')}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card cp"><div class="ct" style="margin-bottom:14px">Distribuição por Plano</div>
+    ${Object.entries(bp).map(([p,n])=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="font-weight:600;text-transform:capitalize;color:var(--text2)">${p}</span><span style="color:var(--text4)">${n} cliente${n!==1?'s':''}</span></div><div class="pb"><div class="pf" style="width:${users.length?Math.round(n/users.length*100):0}%;background:${p==='agency'?'#f97316':p==='pro'?'#3b82f6':'#10b981'}"></div></div></div>`).join('')}
+    </div>
+    <div class="card cp"><div class="ct" style="margin-bottom:12px">Clientes Recentes</div>
+    ${users.length===0?'<div style="color:#9ca3af;font-size:12px;text-align:center;padding:20px 0">Nenhum cliente ainda</div>':users.slice(-5).reverse().map((u,i)=>`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border2)"><div class="av" style="background:${CLR[i%CLR.length]};width:28px;height:28px;font-size:11px">${(u.name||'?').charAt(0)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div><div style="font-size:10px;color:var(--text4)">${u.email}</div></div><span class="badge ${u.plan==='agency'?'b-o':u.plan==='pro'?'b-b':'b-g'}">${u.plan}</span></div>`).join('')}
+    </div>
+  </div>`);
+}
+function mc(ico,bg,v,l){return `<div class="mc"><div class="mc-ico" style="background:${bg}">${ico}</div><div class="mc-v">${v}</div><div class="mc-l">${l}</div></div>`;}
+
+/* ─── CLIENTS ─── */
+function rClients(){
+  set(`<div class="card">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">${users.length} cliente${users.length!==1?'s':''}</div>
+      <input oninput="filtCl(this.value)" placeholder="🔍 Buscar..." style="border:1px solid var(--border);border-radius:7px;padding:6px 11px;font-size:12px;outline:none;background:var(--border2);font-family:Inter,sans-serif;width:200px"/>
+    </div>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Cliente</th><th>E-mail</th><th>Plano</th><th>Nicho</th><th>Uso</th><th>Status</th><th>Desde</th><th>Ações</th></tr></thead>
+    <tbody id="ctbody">${clRows(users)}</tbody></table></div></div>`);
+}
+function clRows(us){
+  if(!us.length)return`<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af;font-size:12px">Nenhum cliente encontrado</td></tr>`;
+  return us.map((u,i)=>{
+    const lim=u.conv_limit||LIMITS[u.plan]||200;const used=u.usage||0;const pct=Math.min(Math.round(used/lim*100),100);
+    const ni=NICHES.find(n=>n.id===(u.niche||'sales'));
+    return`<tr><td><div style="display:flex;align-items:center;gap:9px"><div class="av" style="background:${CLR[i%CLR.length]}">${(u.name||'?').charAt(0)}</div><span style="font-weight:600;color:var(--text)">${u.name||'—'}</span></div></td>
+    <td style="color:var(--text3)">${u.email}</td>
+    <td><span class="badge ${u.plan==='agency'?'b-o':u.plan==='pro'?'b-b':'b-g'}">${u.plan||'starter'}</span></td>
+    <td><span style="font-size:13px">${ni?.i||'💼'}</span> <span style="font-size:11px;color:var(--text3)">${ni?.n||'Geral'}</span></td>
+    <td><div style="font-size:10px;color:var(--text4);margin-bottom:2px">${used}/${lim}</div><div class="pb" style="width:80px"><div class="pf" style="width:${pct}%;background:${pct>80?'#ef4444':pct>60?'#f97316':'#10b981'}"></div></div></td>
+    <td><button class="toggle ${u.active?'on':'off'}" onclick="togAct('${u.id}',${!u.active})"></button></td>
+    <td style="color:var(--text4)">${u.created?new Date(u.created).toLocaleDateString('pt-BR'):'—'}</td>
+    <td><div style="display:flex;gap:5px"><button class="btn" style="padding:4px 9px;font-size:10px" onclick="openCl('${u.id}')">✏️</button><button class="btn r" style="padding:4px 9px;font-size:10px" onclick="delConf('${u.id}')">🗑️</button></div></td></tr>`;
+  }).join('');
+}
+function filtCl(q){const f=q?users.filter(u=>(u.name||'').toLowerCase().includes(q.toLowerCase())||(u.email||'').toLowerCase().includes(q.toLowerCase())):users;const el=document.getElementById('ctbody');if(el)el.innerHTML=clRows(f);}
+
+function openCl(id){
+  const u=users.find(x=>x.id===id);if(!u)return;
+  const ni=u.niche||'sales';ePlan=u.plan;
+  sm(`<div class="mt">✏️ Editar Cliente</div><p class="ms">${u.name} · ${u.email}</p>
+  <div class="tabs">
+    <button class="tab-btn on" onclick="stab('ti',this)">Dados</button>
+    <button class="tab-btn" onclick="stab('tp',this)">Plano & Nicho</button>
+    <button class="tab-btn" onclick="stab('tpw',this)">Senha</button>
+    <button class="tab-btn" onclick="stab('tu',this)">Uso</button>
+  </div>
+  <div id="ti">
+    <div class="fg"><label class="fl">NOME</label><input class="fi" id="en" value="${u.name||''}"/></div>
+    <div class="fg"><label class="fl">E-MAIL</label><input class="fi" id="ee" value="${u.email||''}"/></div>
+    <div class="fg" style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:12px;font-weight:600;color:var(--text2)">Status da conta</div><div style="font-size:11px;color:var(--text4);margin-top:2px">Ativar ou suspender</div></div><button class="toggle ${u.active?'on':'off'}" id="eat" onclick="this.className='toggle '+(this.className.includes('on')?'off':'on')"></button></div>
+  </div>
+  <div id="tp" style="display:none">
+    <div class="fg"><label class="fl">PLANO</label>
+    <div class="plan-row">
+      <div class="plan-opt ${u.plan==='starter'?'on':''}" id="eps" onclick="sePlan('starter','ep')"><div class="pn">Starter</div><div class="pp">R$97/mês</div></div>
+      <div class="plan-opt ${u.plan==='pro'?'on':''}" id="epp" onclick="sePlan('pro','ep')"><div class="pn">Pro</div><div class="pp">R$197/mês</div></div>
+      <div class="plan-opt ${u.plan==='agency'?'on':''}" id="epa" onclick="sePlan('agency','ep')"><div class="pn">Agência</div><div class="pp">R$497/mês</div></div>
+    </div></div>
+    <div class="fg"><label class="fl">NICHO PADRÃO</label>
+    <div style="display:flex;gap:7px;flex-wrap:wrap" id="ncc">
+      ${NICHES.map(n=>`<button class="nc ${n.id===ni?'on':''}" onclick="seNi('${n.id}',this)">${n.i} ${n.n}</button>`).join('')}
+    </div><input type="hidden" id="eni" value="${ni}"/></div>
+    <div class="fg"><label class="fl">LIMITE DE CONVERSAS</label><input class="fi" id="elim" type="number" min="0" value="${u.conv_limit||LIMITS[u.plan]||200}"/></div>
+  </div>
+  <div id="tpw" style="display:none">
+    <div class="alert-ok">🔒 A nova senha será aplicada no próximo login do cliente.</div>
+    <div class="fg"><label class="fl">NOVA SENHA (deixe vazio para não alterar)</label><input class="fi" id="epw" type="text" placeholder="Nova senha..."/></div>
+  </div>
+  <div id="tu" style="display:none">
+    <div class="irow"><span class="il">Conversas usadas</span><span class="iv">${u.usage||0}</span></div>
+    <div class="irow"><span class="il">Limite do plano</span><span class="iv">${u.conv_limit||LIMITS[u.plan]||200}</span></div>
+    <div class="irow"><span class="il">Plano atual</span><span class="iv" style="text-transform:capitalize">${u.plan||'starter'}</span></div>
+    <div class="irow"><span class="il">Nicho ativo</span><span class="iv">${NICHES.find(n=>n.id===u.niche)?.n||'Vendas Gerais'}</span></div>
+    <div class="irow"><span class="il">Cadastrado em</span><span class="iv">${u.created?new Date(u.created).toLocaleDateString('pt-BR'):'—'}</span></div>
+    <button class="btn r" style="width:100%;justify-content:center;margin-top:12px;font-size:12px" onclick="zeroUso('${u.id}')">🔄 Zerar uso</button>
+  </div>
+  <div class="mfoot"><button class="bc" onclick="cm()">Cancelar</button><button class="bok" onclick="saveCl('${u.id}')">💾 Salvar</button></div>`);
+}
+function stab(id,btn){['ti','tp','tpw','tu'].forEach(t=>{const e=document.getElementById(t);if(e)e.style.display=t===id?'':'none';});document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');}
+function sePlan(p,pre){ePlan=p;['s','p','a'].forEach((x,i)=>{const el=document.getElementById(pre+['s','p','a'][i]);if(el)el.classList.toggle('on',['starter','pro','agency'][i]===p);});}
+function seNi(id,btn){document.getElementById('eni').value=id;document.querySelectorAll('#ncc .nc').forEach(c=>c.classList.remove('on'));btn.classList.add('on');}
+
+async function saveCl(id){
+  const u=users.find(x=>x.id===id);if(!u)return;
+  const updates={name:document.getElementById('en')?.value.trim(),email:document.getElementById('ee')?.value.trim(),active:document.getElementById('eat')?.className.includes('on'),plan:ePlan||u.plan,niche:document.getElementById('eni')?.value||u.niche,conv_limit:parseInt(document.getElementById('elim')?.value)||LIMITS[ePlan||u.plan]};
+  const pw=document.getElementById('epw')?.value.trim();
+  try{const d=await apicall('update',{userId:id,updates,newPassword:pw||null});toast('✅ Atualizado!');cm();cpModal(d.users_json,'Alterações salvas');await loadAll();}catch(e){toast('❌ '+e.message);}
+}
+async function togAct(id,active){try{const d=await apicall('update',{userId:id,updates:{active}});toast(active?'✅ Ativado!':'⛔ Suspenso');cpModal(d.users_json,active?'Cliente ativado':'Cliente suspenso');await loadAll();}catch(e){toast('❌ '+e.message);}}
+async function zeroUso(id){try{const d=await apicall('update',{userId:id,updates:{usage:0}});toast('🔄 Uso zerado!');cm();cpModal(d.users_json,'Uso zerado');await loadAll();}catch(e){toast('❌ '+e.message);}}
+function delConf(id){const u=users.find(x=>x.id===id);sm(`<div class="mt" style="color:var(--red)">🗑️ Remover Cliente</div><p class="ms">Remover <strong>${u?.name}</strong>? Não pode ser desfeito.</p><div class="mfoot"><button class="bc" onclick="cm()">Cancelar</button><button class="bok red" onclick="delCl('${id}')">Remover</button></div>`);}
+async function delCl(id){try{const d=await apicall('delete',{userId:id});toast('🗑️ Removido');cm();cpModal(d.users_json,'Cliente removido');await loadAll();}catch(e){toast('❌ '+e.message);}}
+
+/* ─── ADD ─── */
+function rAdd(){
+  set(`<div style="max-width:560px">
+  <div class="card cp">
+    <div class="ct" style="margin-bottom:4px">Novo Cliente</div><div class="cs" style="margin-bottom:18px">Preencha os dados e gere o acesso</div>
+    <div class="fg"><label class="fl">NOME</label><input class="fi" id="an"/></div>
+    <div class="fg"><label class="fl">E-MAIL</label><input class="fi" id="ae" type="email"/></div>
+    <div class="fg"><label class="fl">SENHA INICIAL</label><div style="display:flex;gap:8px"><input class="fi" id="ap" style="flex:1" placeholder="Deixe vazio para gerar"/><button class="btn" onclick="document.getElementById('ap').value=rpw()" style="white-space:nowrap;flex-shrink:0">🎲 Gerar</button></div></div>
+    <div class="fg"><label class="fl">PLANO</label><div class="plan-row">
+      <div class="plan-opt on" id="nps" onclick="snp('starter')"><div class="pn">Starter</div><div class="pp">R$97/mês</div></div>
+      <div class="plan-opt" id="npp" onclick="snp('pro')"><div class="pn">Pro</div><div class="pp">R$197/mês</div></div>
+      <div class="plan-opt" id="npa" onclick="snp('agency')"><div class="pn">Agência</div><div class="pp">R$497/mês</div></div>
+    </div></div>
+    <div class="fg"><label class="fl">NICHO PADRÃO</label><div style="display:flex;gap:7px;flex-wrap:wrap" id="nnc">
+      ${NICHES.map(n=>`<button class="nc ${n.id==='sales'?'on':''}" onclick="snn('${n.id}',this)">${n.i} ${n.n}</button>`).join('')}
+    </div></div>
+    <button class="btn p" style="width:100%;justify-content:center;padding:12px;font-size:13px" onclick="genUser()">✨ Gerar acesso</button>
+  </div>
+  <div id="gr" style="display:none;margin-top:14px"></div></div>`);
+}
+function snp(p){nPlan=p;['starter','pro','agency'].map((x,i)=>document.getElementById(['nps','npp','npa'][i])?.classList.toggle('on',x===p));}
+function snn(id,btn){nNiche=id;document.querySelectorAll('#nnc .nc').forEach(c=>c.classList.remove('on'));btn.classList.add('on');}
+function rpw(){const c='abcdefghjkmnpqrstuvwxyz23456789@#!';return Array.from({length:10},()=>c[Math.floor(Math.random()*c.length)]).join('');}
+async function genUser(){
+  const name=document.getElementById('an')?.value.trim();const email=document.getElementById('ae')?.value.trim();const pass=document.getElementById('ap')?.value.trim()||rpw();
+  if(!name||!email){toast('⚠️ Preencha nome e e-mail');return;}
+  try{const d=await apicall('generate',{user:{name,email,password:pass,plan:nPlan,niche:nNiche}});
+  const gr=document.getElementById('gr');gr.style.display='';
+  gr.innerHTML=`<div class="card cp"><div style="font-size:14px;font-weight:800;color:var(--primary);margin-bottom:4px">✅ Acesso gerado!</div>
+  <p style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6">Siga os 3 passos:</p>
+  <div class="sb"><div class="srow"><div class="sn">1</div><div class="st">Cole em <strong>Vercel → Settings → Env Vars → USERS_JSON</strong></div></div>
+  <div class="code" id="nj" onclick="cp('nj')" style="margin-top:8px">${d.users_json}</div>
+  <button class="btn p" style="margin-top:6px;font-size:11px;padding:5px 14px" onclick="cp('nj')">📋 Copiar JSON</button></div>
+  <div class="sb" style="margin-top:8px"><div class="srow"><div class="sn">2</div><div class="st">Vercel: <strong>Deployments → ⋯ → Redeploy</strong></div></div></div>
+  <div class="sb" style="margin-top:8px"><div class="srow"><div class="sn">3</div><div class="st">Envie ao cliente:</div></div>
+  <div class="code" id="nc2" onclick="cp('nc2')" style="margin-top:8px">🔗 Link: ${location.origin}/login.html\n📧 Email: ${email}\n🔑 Senha: ${pass}\n📦 Plano: ${nPlan}</div>
+  <button class="btn" style="margin-top:6px;font-size:11px;padding:5px 14px" onclick="cp('nc2')">📋 Copiar credenciais</button></div></div>`;
+  await loadAll();}catch(e){toast('❌ '+e.message);}
 }
 
-module.exports = function(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+/* ─── MESSAGES ─── */
+function rMsgs(){
+  set(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+  <div class="card cp">
+    <div class="ct" style="margin-bottom:4px">📢 Enviar Aviso</div><div class="cs" style="margin-bottom:18px">Aparece para o cliente ao entrar</div>
+    <div class="fg"><label class="fl">DESTINATÁRIO</label><select class="fi" id="mto"><option value="all">📣 Todos os clientes</option>${users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('')}</select></div>
+    <div class="fg"><label class="fl">TIPO</label><select class="fi" id="mtp"><option value="info">ℹ️ Informação</option><option value="success">✅ Sucesso</option><option value="warning">⚠️ Aviso</option><option value="error">❌ Urgente</option></select></div>
+    <div class="fg"><label class="fl">TÍTULO</label><input class="fi" id="mti" placeholder="Ex: Manutenção programada"/></div>
+    <div class="fg"><label class="fl">MENSAGEM</label><textarea class="fi" id="mb" rows="4" style="resize:vertical" placeholder="Digite o aviso..."></textarea></div>
+    <button class="btn p" style="width:100%;justify-content:center;padding:10px" onclick="sendMsg()">📨 Enviar aviso</button>
+  </div>
+  <div class="card cp"><div class="ct" style="margin-bottom:14px">📋 Histórico</div><div id="mlist"></div></div></div>`);
+  loadMsgs();
+}
+function loadMsgs(){
+  const msgs=JSON.parse(localStorage.getItem('nadm_msgs')||'[]');
+  const el=document.getElementById('mlist');if(!el)return;
+  if(!msgs.length){el.innerHTML='<div style="color:#9ca3af;font-size:12px;text-align:center;padding:20px 0">Nenhum aviso ainda</div>';return;}
+  const bc={info:'b-b',success:'b-g',warning:'b-o',error:'b-r'};
+  el.innerHTML=msgs.slice().reverse().map(m=>`<div style="padding:11px 13px;background:var(--border2);border-radius:9px;border-left:3px solid ${m.type==='error'?'#ef4444':m.type==='warning'?'#f97316':m.type==='success'?'#10b981':'#3b82f6'};margin-bottom:7px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px"><div style="font-size:12px;font-weight:700;color:var(--text)">${m.title}</div><span class="badge ${bc[m.type]||'b-b'}">${m.type}</span></div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.5">${m.body}</div>
+    <div style="font-size:10px;color:var(--text4);margin-top:5px">Para: ${m.to==='all'?'Todos':users.find(u=>u.id===m.to)?.name||m.to} · ${new Date(m.sent).toLocaleString('pt-BR')}</div>
+  </div>`).join('');
+}
+function sendMsg(){
+  const to=document.getElementById('mto')?.value;const tp=document.getElementById('mtp')?.value;
+  const ti=document.getElementById('mti')?.value.trim();const b=document.getElementById('mb')?.value.trim();
+  if(!ti||!b){toast('⚠️ Preencha título e mensagem');return;}
+  const msgs=JSON.parse(localStorage.getItem('nadm_msgs')||'[]');
+  const note={id:Date.now(),to,type:tp,title:ti,body:b,sent:new Date().toISOString()};
+  msgs.push(note);localStorage.setItem('nadm_msgs',JSON.stringify(msgs));
+  const nkey={id:note.id,type:tp,title:ti,body:b,sent:note.sent,read:false};
+  if(to==='all')users.forEach(u=>{const k='nexus_notif_'+u.id;const n=JSON.parse(localStorage.getItem(k)||'[]');n.push(nkey);localStorage.setItem(k,JSON.stringify(n));});
+  else{const k='nexus_notif_'+to;const n=JSON.parse(localStorage.getItem(k)||'[]');n.push(nkey);localStorage.setItem(k,JSON.stringify(n));}
+  toast('📨 Aviso enviado!');
+  document.getElementById('mti').value='';document.getElementById('mb').value='';
+  loadMsgs();
+}
 
-  const auth    = (req.headers.authorization || '').replace('Bearer ', '');
-  const payload = verifyToken(auth);
-  if (!payload || payload.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+/* ─── PLANS ─── */
+function rPlans(){
+  set(`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+    ${[{id:'starter',n:'Starter',p:97,c:'#10b981',cl:'#d1fae5'},{id:'pro',n:'Pro',p:197,c:'#3b82f6',cl:'#dbeafe'},{id:'agency',n:'Agência',p:497,c:'#f97316',cl:'#ffedd5'}].map(pl=>`
+    <div class="card cp" style="border-top:3px solid ${pl.c}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div><div style="font-size:16px;font-weight:800;color:var(--text)">${pl.n}</div><div style="font-size:22px;font-weight:800;color:${pl.c};margin-top:4px">R$${pl.p}<span style="font-size:12px;font-weight:500;color:var(--text4)">/mês</span></div></div>
+        <span class="badge" style="background:${pl.cl};color:${pl.c}">${users.filter(u=>u.plan===pl.id).length} clientes</span>
+      </div>
+      <div style="font-size:11px;color:var(--text4);margin-bottom:4px">Limite de conversas</div>
+      <input type="number" class="fi" value="${LIMITS[pl.id]||200}" style="font-size:14px;font-weight:700" onchange="LIMITS['${pl.id}']=parseInt(this.value)"/>
+      <div style="margin-top:10px;font-size:11px;color:var(--text4)">MRR: <strong style="color:var(--text)">R$${(users.filter(u=>u.active&&u.plan===pl.id).length*pl.p).toLocaleString('pt-BR')}</strong></div>
+    </div>`).join('')}
+  </div>
+  <div class="card"><div style="padding:14px 16px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--text)">Alterar plano por cliente</div>
+  <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Cliente</th><th>Plano atual</th><th>Uso</th><th>Limite</th><th>Mudar plano</th></tr></thead><tbody>
+    ${users.map((u,i)=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:${CLR[i%CLR.length]};width:26px;height:26px;font-size:10px">${(u.name||'?').charAt(0)}</div><span style="font-weight:600">${u.name}</span></div></td>
+      <td><span class="badge ${u.plan==='agency'?'b-o':u.plan==='pro'?'b-b':'b-g'}">${u.plan||'starter'}</span></td>
+      <td>${u.usage||0}</td><td>${u.conv_limit||LIMITS[u.plan]||200}</td>
+      <td><select class="fi" style="padding:5px 8px;width:auto;font-size:11px" onchange="cpQuick('${u.id}',this.value)">
+        <option value="starter" ${u.plan==='starter'?'selected':''}>Starter</option>
+        <option value="pro" ${u.plan==='pro'?'selected':''}>Pro</option>
+        <option value="agency" ${u.plan==='agency'?'selected':''}>Agência</option>
+      </select></td>
+    </tr>`).join('')}
+  </tbody></table></div></div>`);
+}
+async function cpQuick(id,plan){try{const d=await apicall('update',{userId:id,updates:{plan,conv_limit:LIMITS[plan]||200}});toast('✅ Plano alterado!');cpModal(d.users_json,'Plano alterado');await loadAll();}catch(e){toast('❌ '+e.message);}}
 
-  const { action, user, userId, updates, newPassword } = req.body || {};
-  const users = getUsers();
+/* ─── SETUP ─── */
+function rSetup(){
+  set(`<div style="max-width:560px;display:flex;flex-direction:column;gap:14px">
+  <div class="card cp"><div class="ct" style="margin-bottom:14px">🔑 Variáveis de Ambiente (Vercel)</div>
+  ${[['GROQ_API_KEY','Chave da Groq (gsk_...)'],['JWT_SECRET','Chave de segurança — use string longa e aleatória'],['ADMIN_EMAIL','Seu e-mail de administrador'],['ADMIN_PASS','Sua senha de administrador'],['USERS_JSON','JSON dos clientes — gerado automaticamente']].map(([n,d])=>`
+    <div class="sb" style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px">${n}</div><div style="font-size:11px;color:var(--text3)">${d}</div></div>`).join('')}
+  </div>
+  <div class="card cp"><div class="ct" style="margin-bottom:4px">📦 USERS_JSON atual</div>
+    <div class="cs" style="margin-bottom:12px">${users.length} cliente${users.length!==1?'s':''} cadastrados</div>
+    <div class="code" id="cj" onclick="cp('cj')" title="Clique para copiar">${JSON.stringify(users)}</div>
+    <button class="btn p" style="margin-top:8px;font-size:11px;padding:6px 14px" onclick="cp('cj')">📋 Copiar USERS_JSON</button>
+  </div></div>`);
+}
 
-  // ── LIST ──────────────────────────────────────────────────────────────────
-  if (action === 'list') {
-    return res.status(200).json({
-      users: users.map(u => ({ ...u, password: undefined }))
-    });
-  }
-
-  // ── GENERATE ──────────────────────────────────────────────────────────────
-  if (action === 'generate') {
-    if (!user || !user.email || !user.password || !user.name) {
-      return res.status(400).json({ error: 'email, password e name obrigatórios' });
-    }
-    if (users.find(u => u.email === user.email)) {
-      return res.status(400).json({ error: 'E-mail já cadastrado' });
-    }
-    const newUser = {
-      id:         Date.now().toString(),
-      email:      user.email.toLowerCase().trim(),
-      password:   hashPwd(user.password),
-      name:       user.name.trim(),
-      plan:       user.plan  || 'starter',
-      niche:      user.niche || 'sales',
-      active:     true,
-      usage:      0,
-      conv_limit: user.conv_limit || (user.plan === 'agency' ? 9999 : user.plan === 'pro' ? 1000 : 200),
-      created:    new Date().toISOString(),
-    };
-    const updated = [...users, newUser];
-    return res.status(200).json({
-      user:       { ...newUser, password: undefined },
-      users_json: JSON.stringify(updated),
-    });
-  }
-
-  // ── UPDATE ────────────────────────────────────────────────────────────────
-  if (action === 'update') {
-    if (!userId) return res.status(400).json({ error: 'userId obrigatório' });
-    const idx = users.findIndex(u => u.id === userId);
-    if (idx === -1) return res.status(404).json({ error: 'Usuário não encontrado' });
-    const merged = { ...users[idx] };
-    const allowed = ['name','email','plan','niche','active','usage','conv_limit'];
-    if (updates) allowed.forEach(k => { if (updates[k] !== undefined) merged[k] = updates[k]; });
-    if (newPassword && newPassword.trim()) merged.password = hashPwd(newPassword.trim());
-    users[idx] = merged;
-    return res.status(200).json({
-      user:       { ...merged, password: undefined },
-      users_json: JSON.stringify(users),
-    });
-  }
-
-  // ── DELETE ────────────────────────────────────────────────────────────────
-  if (action === 'delete') {
-    if (!userId) return res.status(400).json({ error: 'userId obrigatório' });
-    const updated = users.filter(u => u.id !== userId);
-    if (updated.length === users.length) return res.status(404).json({ error: 'Usuário não encontrado' });
-    return res.status(200).json({ users_json: JSON.stringify(updated) });
-  }
-
-  // ── STATS ─────────────────────────────────────────────────────────────────
-  if (action === 'stats') {
-    const prices = { starter: 97, pro: 197, agency: 497 };
-    const mrr = users.filter(u => u.active).reduce((s, u) => s + (prices[u.plan] || 97), 0);
-    const byPlan = users.reduce((acc, u) => { acc[u.plan] = (acc[u.plan] || 0) + 1; return acc; }, {});
-    return res.status(200).json({ total: users.length, active: users.filter(u=>u.active).length, mrr, byPlan });
-  }
-
-  return res.status(400).json({ error: 'Ação inválida: ' + action });
-};
+/* ─── HELPERS ─── */
+function cpModal(json,action){sm(`<div class="mt" style="color:var(--primary)">✅ ${action}!</div><p class="ms">Copie e atualize no Vercel para aplicar.</p>
+  <div class="sb"><div class="srow"><div class="sn">1</div><div class="st">Cole em <strong>Vercel → Settings → Env Vars → USERS_JSON</strong></div></div></div>
+  <div class="code" id="cpj" onclick="cp('cpj')" style="margin-top:10px">${json}</div>
+  <div class="sb" style="margin-top:8px"><div class="srow"><div class="sn">2</div><div class="st"><strong>Deployments → ⋯ → Redeploy</strong></div></div></div>
+  <div class="mfoot"><button class="bok" onclick="cp('cpj');toast('📋 Copiado!')">📋 Copiar JSON</button><button class="bc" onclick="cm()">Fechar</button></div>`);}
+function set(h){document.getElementById('content').innerHTML=h;}
+function sm(h){document.getElementById('mbox').innerHTML=h;document.getElementById('movl').style.display='flex';}
+function cm(){document.getElementById('movl').style.display='none';ePlan=null;}
+function cp(id){const t=document.getElementById(id)?.textContent;if(t)navigator.clipboard.writeText(t).then(()=>toast('📋 Copiado!'));}
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.style.display='flex';clearTimeout(toast._t);toast._t=setTimeout(()=>el.style.display='none',3000);}
+function logout(){localStorage.removeItem('nexus_token');localStorage.removeItem('nexus_user');window.location.href='/login.html';}
+loadAll();
+</script>
+</body>
+</html>
