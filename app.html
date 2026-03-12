@@ -527,8 +527,8 @@ function BarChart(){
         </div>
       </div>
       <div className="bleg2">
-        <div className="bleg2-i"><div className="bleg2-d" style={{background:'#34d399'}}/>Answered</div>
-        <div className="bleg2-i"><div className="bleg2-d" style={{background:'#fca5a5'}}/>Unanswered</div>
+        <div className="bleg2-i"><div className="bleg2-d" style={{background:'#34d399'}}/>Respondidas</div>
+        <div className="bleg2-i"><div className="bleg2-d" style={{background:'#fca5a5'}}/>Não respondidas</div>
       </div>
     </div>
   );
@@ -559,13 +559,37 @@ function App(){
   const iRef=useRef(null);
 
 
-  // Set user info in sidebar
+  // Notifications from admin
+  const [notifs,setNotifs] = useState(()=>{
+    const u = JSON.parse(localStorage.getItem('nexus_user')||'{}');
+    try { return JSON.parse(localStorage.getItem('nexus_notif_'+u.id)||'[]'); } catch { return []; }
+  });
+
+  // Set user info in sidebar + show admin notifications
   useEffect(()=>{
     const u = JSON.parse(localStorage.getItem('nexus_user')||'{}');
     const el = document.getElementById('user-name-sb');
     const av = document.getElementById('user-av-sb');
+    const pl = document.getElementById('user-plan-sb');
     if(el) el.textContent = u.name || u.email || 'Usuário';
     if(av) av.textContent = (u.name||u.email||'U').charAt(0).toUpperCase();
+    if(pl) pl.textContent = (u.plan||'starter').toUpperCase();
+    const ns = JSON.parse(localStorage.getItem('nexus_notif_'+u.id)||'[]');
+    const unr = ns.filter(n=>!n.read);
+    if(unr.length>0){
+      const last = unr[unr.length-1];
+      const bc = last.type==='error'?'#ef4444':last.type==='warning'?'#f97316':last.type==='success'?'#10b981':'#3b82f6';
+      setTimeout(()=>{
+        const d=document.createElement('div');
+        d.style.cssText='position:fixed;top:16px;right:16px;background:#fff;border:1.5px solid '+bc+';border-radius:11px;padding:13px 16px;font-family:Inter,sans-serif;font-size:12px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.12);max-width:300px;';
+        d.innerHTML='<div style="font-weight:700;color:#111;margin-bottom:3px">'+last.title+'</div><div style="color:#6b7280;line-height:1.5">'+last.body+'</div><div style="font-size:10px;color:#9ca3af;margin-top:6px"><span>Da equipe Nexus AI</span></div>';
+        document.body.appendChild(d);
+        setTimeout(()=>d.remove(),8000);
+        const marked = ns.map(n=>({...n,read:true}));
+        localStorage.setItem('nexus_notif_'+u.id, JSON.stringify(marked));
+        setNotifs(marked);
+      },1500);
+    }
   },[]);
   useEffect(()=>sv({apiKey,convs,personas,rescueQ,activeNiche,autos}),[apiKey,convs,personas,rescueQ,activeNiche,autos]);
   useEffect(()=>endRef.current?.scrollIntoView({behavior:'smooth'}),[convs,loading,aid]);
@@ -657,13 +681,13 @@ function App(){
   const setNiche=id=>{setActiveNiche(id);const n=NICHES.find(x=>x.id===id);if(n)setPersonas(p=>p.map(x=>x.is_active?{...x,prompt:n.prompt,niche:n.id}:x));showT(`✅ Nicho "${n?.name}" ativado`);};
 
   const NAV=[
-    {id:'dashboard',icon:'⊞',label:'Dashboard'},
-    {id:'inbox',icon:'✉',label:'Inbox',badge:liveC||null},
-    {id:'agents',icon:'🤖',label:'AI Agents'},
-    {id:'automations',icon:'⚡',label:'Automations',badgeGray:autos.filter(a=>a.active).length||null},
-    {id:'knowledge',icon:'📚',label:'Knowledge Base'},
-    {id:'analytics',icon:'📊',label:'Analytics'},
-    {id:'settings',icon:'⚙',label:'Settings'},
+    {id:'dashboard',icon:'⊞',label:'Painel'},
+    {id:'inbox',icon:'✉',label:'Mensagens',badge:liveC||null},
+    {id:'agents',icon:'🤖',label:'Agentes IA'},
+    {id:'automations',icon:'⚡',label:'Automações',badgeGray:autos.filter(a=>a.active).length||null},
+    {id:'knowledge',icon:'📚',label:'Base de Conhecimento'},
+    {id:'analytics',icon:'📊',label:'Análises'},
+    {id:'settings',icon:'⚙',label:'Configurações'},
   ];
 
   const RAIL=[
@@ -671,7 +695,7 @@ function App(){
     {id:'automations',e:'⚡'},{id:'knowledge',e:'📚'},{id:'analytics',e:'📊'},
   ];
 
-  const PAGE_TITLE={dashboard:'AI Chatbot',inbox:'Inbox',agents:'AI Agents',automations:'Automations',knowledge:'Knowledge Base',analytics:'Analytics',settings:'Settings'};
+  const PAGE_TITLE={dashboard:'Painel',inbox:'Mensagens',agents:'Agentes IA',automations:'Automações',knowledge:'Base de Conhecimento',analytics:'Análises',settings:'Configurações'};
 
   /* ── DASHBOARD ── */
   const renderDashboard=()=>(
@@ -679,17 +703,17 @@ function App(){
       <div className="sub-bar">
         <div className="page-sub">Hub</div>
         <div style={{display:'flex',gap:8}}>
-          <button className="tbtn">🧪 Test Agent</button>
-          <button className="tbtn p" onClick={newConv} disabled={false}>▶ Activate</button>
+          <button className="tbtn">🧪 Testar Agente</button>
+          <button className="tbtn p" onClick={newConv} disabled={false}>▶ Ativar</button>
         </div>
       </div>
 
       <div className="dash3">
         {/* Card 1 — Conversations limit */}
         <div className="card cp">
-          <div className="ch"><div><div className="ct">Conversations limit</div><div className="cs">Conversations last month · {total} total</div></div><button className="cm">···</button></div>
+          <div className="ch"><div><div className="ct">Conversations limit</div><div className="cs">Conversas no último mês · {total} total</div></div><button className="cm">···</button></div>
           <div className="bleg">
-            {[['#10b981','Weekly'],['#3b82f6','Monthly'],['#8b5cf6','Yearly']].map(([c,l])=>(
+            {[['#10b981','Semanal'],['#3b82f6','Mensal'],['#8b5cf6','Anual']].map(([c,l])=>(
               <div key={l} className="bleg-i"><div className="bleg-d" style={{background:c}}/>{l}</div>
             ))}
           </div>
@@ -710,7 +734,7 @@ function App(){
               <div className="ring-mid"><div className="ring-pct">55%</div></div>
             </div>
             <div className="rtasks">
-              {[['Testar o Agente',true],['Ativar Agente IA',true],['Configurar Automações',false],['Completar Knowledge Base',false]].map(([t,d])=>(
+              {[['Testar o Agente',true],['Ativar Agente IA',true],['Configurar Automações',false],['Completar Base de Conhecimento',false]].map(([t,d])=>(
                 <div key={t} className="rtask"><div className="rtask-d" style={{background:d?'#10b981':'#e5e7eb'}}/><span style={{color:d?'#374151':'#9ca3af'}}>{t}</span></div>
               ))}
             </div>
@@ -719,12 +743,12 @@ function App(){
 
         {/* Card 2 — Answered chatbot */}
         <div className="card cp">
-          <div className="ch"><div className="ct">Answered Chatbot</div><span className="see-all" onClick={()=>setPage('inbox')}>See All</span></div>
-          <div className="asec">Answered Today</div>
+          <div className="ch"><div className="ct">Chatbot Respondidas</div><span className="see-all" onClick={()=>setPage('inbox')}>Ver Todas</span></div>
+          <div className="asec">Respondidas Hoje</div>
           <div className="ai-item">
             <div className="ai-av" style={{background:'#10b981'}}>{ap.name.charAt(0)}</div>
             <div className="ai-info"><div className="ai-name">{ap.name}</div><div className="ai-msg">{hasKey?'Sistema online e ativo':'Configure a API Key'}</div></div>
-            <div className="ai-right"><span className="badge b-green">Active</span></div>
+            <div className="ai-right"><span className="badge b-green">Ativo</span></div>
           </div>
           <div className="asec" style={{marginTop:10}}>All</div>
           {convs.length===0&&<div style={{fontSize:11,color:'var(--text4)',padding:'12px 0',textAlign:'center'}}>Nenhuma conversa ainda.<br/>Clique em "+ Nova Conversa".</div>}
@@ -734,7 +758,7 @@ function App(){
               <div className="ai-info"><div className="ai-name">{c.title.slice(0,22)}</div><div className="ai-msg">{c.messages.slice(-1)[0]?.content?.slice(0,26)||'...'}...</div></div>
               <div className="ai-right">
                 <span className="ai-t">{c.messages.length}m</span>
-                <span className={`badge ${c.outcome==='won'?'b-green':c.outcome==='lost'?'b-red':'b-blue'}`}>{c.outcome==='won'?'Won':c.outcome==='lost'?'Lost':'Live'}</span>
+                <span className={`badge ${c.outcome==='won'?'b-green':c.outcome==='lost'?'b-red':'b-blue'}`}>{c.outcome==='won'?'Ganho':c.outcome==='lost'?'Perdido':'Ativo'}</span>
               </div>
             </div>
           ))}
@@ -742,7 +766,7 @@ function App(){
 
         {/* Card 3 — Time Saved */}
         <div className="card cp">
-          <div className="ch"><div className="ct">Time Saved</div><button className="cm">···</button></div>
+          <div className="ch"><div className="ct">Tempo Economizado</div><button className="cm">···</button></div>
           <div className="tsaved"><TimeSavedDonut/></div>
           <div className="tlist">
             {[['#10b981','July 18, 2019','124m'],['#60a5fa','July 15, 2019','160m'],['#fbbf24','July 15, 2019','160m']].map(([c,d,v])=>(
@@ -757,14 +781,14 @@ function App(){
       {/* Full-width bar chart */}
       <div className="card cp">
         <div className="ch">
-          <div><div className="ct">Responses over time</div></div>
+          <div><div className="ct">Respostas ao longo do tempo</div></div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <div className="bleg2">
-              <div className="bleg2-i"><div className="bleg2-d" style={{background:'#34d399'}}/>Answered</div>
-              <div className="bleg2-i"><div className="bleg2-d" style={{background:'#fca5a5'}}/>Unanswered</div>
+              <div className="bleg2-i"><div className="bleg2-d" style={{background:'#34d399'}}/>Respondidas</div>
+              <div className="bleg2-i"><div className="bleg2-d" style={{background:'#fca5a5'}}/>Não respondidas</div>
             </div>
             <select style={{border:'1px solid var(--border)',borderRadius:6,padding:'4px 8px',fontSize:11,color:'var(--text3)',outline:'none',background:'var(--white)',cursor:'pointer'}}>
-              <option>Daily</option><option>Weekly</option><option>Monthly</option>
+              <option>Diário</option><option>Semanal</option><option>Mensal</option>
             </select>
           </div>
         </div>
@@ -801,7 +825,7 @@ function App(){
                 </div>
                 <div className="cright">
                   <div className="ctime">{c.messages.length>0?fmt(c.messages.slice(-1)[0].created_at):fmtD(c.created_at)}</div>
-                  {c.outcome?<span className={`opill ${c.outcome==='won'?'op-won':'op-lost'}`}>{c.outcome==='won'?'Won':'Lost'}</span>:<span className="opill op-live">Live</span>}
+                  {c.outcome?<span className={`opill ${c.outcome==='won'?'op-won':'op-lost'}`}>{c.outcome==='won'?'Ganho':'Perdido'}</span>:<span className="opill op-live">Ativo</span>}
                   {!c.outcome&&c.messages.filter(m=>m.role==='user').length>0&&<div className="cunread">{c.messages.filter(m=>m.role==='user').length}</div>}
                 </div>
               </div>
@@ -839,8 +863,8 @@ function App(){
                 </div>
               </div>
               <div className="cact">
-                <button className="abtn g" onClick={()=>setOutcome('won')}>✅ Won</button>
-                <button className="abtn ro" onClick={()=>setOutcome('lost')}>✗ Lost</button>
+                <button className="abtn g" onClick={()=>setOutcome('won')}>✅ Ganho</button>
+                <button className="abtn ro" onClick={()=>setOutcome('lost')}>✗ Perdido</button>
                 <button className="abtn po" onClick={analyzeLost} disabled={loading}>🔍 Analisar</button>
                 <button className="abtn oo" onClick={genProp} disabled={loading}>📄 Proposta</button>
                 <button className="tbtn" style={{padding:'5px 8px',fontSize:13}} onClick={e=>delConv(aid,e)}>🗑️</button>
@@ -883,7 +907,7 @@ function App(){
   /* ── AGENTS ── */
   const renderAgents=()=>(
     <div className="content">
-      <div className="sub-bar"><div className="page-sub">AI Agents</div><button className="tbtn p" onClick={()=>setShowAF(true)}>+ Novo Agente</button></div>
+      <div className="sub-bar"><div className="page-sub">Agentes IA</div><button className="tbtn p" onClick={()=>setShowAF(true)}>+ Novo Agente</button></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(255px,1fr))',gap:14}}>
         {personas.map((p,i)=>(
           <div key={p.id} className={`agcrd ${p.is_active?'on':''}`}>
@@ -910,7 +934,7 @@ function App(){
   /* ── AUTOMATIONS ── */
   const renderAutomations=()=>(
     <div className="content">
-      <div className="sub-bar"><div><div className="page-sub">Automations</div><div style={{fontSize:11,color:'var(--text4)',marginTop:2}}>{autos.filter(a=>a.active).length} de {autos.length} ativas</div></div></div>
+      <div className="sub-bar"><div><div className="page-sub">Automações</div><div style={{fontSize:11,color:'var(--text4)',marginTop:2}}>{autos.filter(a=>a.active).length} de {autos.length} ativas</div></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(275px,1fr))',gap:14}}>
         {autos.map(a=>(
           <div key={a.id} className="acrd">
@@ -949,7 +973,7 @@ function App(){
   /* ── KNOWLEDGE ── */
   const renderKnowledge=()=>(
     <div className="content">
-      <div className="sub-bar"><div className="page-sub">Knowledge Base</div></div>
+      <div className="sub-bar"><div className="page-sub">Base de Conhecimento</div></div>
       <div className="ngrid">
         {NICHES.map(n=>(
           <div key={n.id} className={`ncard ${activeNiche===n.id?'on':''}`} onClick={()=>setNiche(n.id)}>
@@ -976,7 +1000,7 @@ function App(){
   /* ── ANALYTICS ── */
   const renderAnalytics=()=>(
     <div className="content">
-      <div className="sub-bar"><div className="page-sub">Analytics</div></div>
+      <div className="sub-bar"><div className="page-sub">Análises</div></div>
       <div className="mrow">
         {[
           {l:'Taxa de Conversão',v:`${rate}%`,ic:'📈',ci:'mci-g',bd:rate>40?'+5%':'-3%',up:rate>40},
@@ -995,12 +1019,12 @@ function App(){
         ))}
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 280px',gap:14}}>
-        <div className="card cp"><div className="ch"><div className="ct">Responses over time</div></div><BarChart/></div>
+        <div className="card cp"><div className="ch"><div className="ct">Respostas ao longo do tempo</div></div><BarChart/></div>
         <div className="card cp" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14}}>
           <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>Taxa de Conversão</div>
           <Donut val={won} max={Math.max(total,1)} color="#10b981" size={110}/>
           <div className="prog" style={{width:'100%'}}>
-            {[['Won',won,rate,'#10b981'],['Lost',lost,total>0?Math.round(lost/total*100):0,'#ef4444'],['Live',total-won-lost,total>0?Math.round((total-won-lost)/total*100):0,'#3b82f6']].map(([l,v,p,c])=>(
+            {[['Ganho',won,rate,'#10b981'],['Perdido',lost,total>0?Math.round(lost/total*100):0,'#ef4444'],['Ativo',total-won-lost,total>0?Math.round((total-won-lost)/total*100):0,'#3b82f6']].map(([l,v,p,c])=>(
               <div key={l} className="pi">
                 <div className="pi-top"><div className="pi-lbl" style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:7,height:7,borderRadius:'50%',background:c,display:'inline-block'}}/>{l}: {v}</div><div className="pi-pct">{p}%</div></div>
                 <div className="pi-bg"><div className="pi-f" style={{width:`${p}%`,background:c}}/></div>
@@ -1022,7 +1046,7 @@ function App(){
             </div>
             <div style={{fontSize:11,color:'var(--text4)'}}>{c.messages.length} msgs</div>
             <div style={{fontSize:11,color:'var(--text4)'}}>{fmtD(c.created_at)}</div>
-            <div>{c.outcome?<span className={`pill ${c.outcome==='won'?'pill-g':'pill-r'}`}>{c.outcome==='won'?'Won':'Lost'}</span>:<span className="pill pill-b">Live</span>}</div>
+            <div>{c.outcome?<span className={`pill ${c.outcome==='won'?'pill-g':'pill-r'}`}>{c.outcome==='won'?'Ganho':'Perdido'}</span>:<span className="pill pill-b">Ativo</span>}</div>
           </div>
         ))}
       </div>
@@ -1032,7 +1056,7 @@ function App(){
   /* ── SETTINGS ── */
   const renderSettings=()=>(
     <div className="content">
-      <div className="sub-bar"><div className="page-sub">Settings</div></div>
+      <div className="sub-bar"><div className="page-sub">Configurações</div></div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
         <div className="card cp">
           <div className="ct" style={{marginBottom:14}}>🔑 API Key — Groq (Gratuito)</div>
@@ -1094,7 +1118,7 @@ function App(){
           </div>
           {page==='dashboard'&&(
             <div className="sb-sub-nav">
-              {[['Hub','#10b981',true],['Data sources','#6b7280',false],['Suggestions','#6b7280',false],['Playground','#6b7280',false],['Tasks','#6b7280',false],['Configure','#6b7280',false],['Train AI','#6b7280',false]].map(([l,c,a])=>(
+              {[['Hub','#10b981',true],['Fontes de Dados','#6b7280',false],['Sugestões','#6b7280',false],['Área de Testes','#6b7280',false],['Tarefas','#6b7280',false],['Configurar','#6b7280',false],['Treinar IA','#6b7280',false]].map(([l,c,a])=>(
                 <div key={l} className={`sb-sub-item ${a?'on':''}`}>
                   <div className="sb-sub-dot" style={{background:a?c:'#e5e7eb'}}/>{l}
                 </div>
@@ -1126,11 +1150,26 @@ function App(){
         </nav>
 
         <div className="sb-foot">
-          {[['⚙️','Settings'],['☀️','Aparência'],['🌙','Dark Mode']].map(([ic,l])=>(
-            <div key={l} className="sb-foot-item" onClick={l==='Settings'?()=>setPage('settings'):undefined}>
+          {/* User info */}
+          <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:'var(--border2)',borderRadius:8,marginBottom:6}}>
+            <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--primary),var(--primary-h))',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:12,fontWeight:700,flexShrink:0}} id="sb-user-av">U</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:5,minWidth:0}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} id="sb-user-name">Carregando...</div>
+                <span style={{fontSize:8,fontWeight:700,color:'var(--primary)',background:'var(--primary-l)',padding:'1px 5px',borderRadius:99,flexShrink:0}} id="user-plan-sb">STARTER</span>
+              </div>
+              <div style={{fontSize:9,color:'var(--primary)',display:'flex',alignItems:'center',gap:3}}><div style={{width:5,height:5,borderRadius:'50%',background:'var(--primary)'}}/> Online</div>
+            </div>
+          </div>
+          {[['⚙️','Configurações'],['🌙','Modo Escuro']].map(([ic,l])=>(
+            <div key={l} className="sb-foot-item" onClick={l==='Configurações'?()=>setPage('settings'):undefined}>
               <span style={{fontSize:14}}>{ic}</span><span style={{fontSize:12}}>{l}</span>
             </div>
           ))}
+          {/* Logout */}
+          <div className="sb-foot-item" style={{color:'var(--red)',marginTop:2}} onClick={()=>{localStorage.removeItem('nexus_token');localStorage.removeItem('nexus_user');window.location.href='/login.html';}}>
+            <span style={{fontSize:14}}>🚪</span><span style={{fontSize:12,fontWeight:600}}>Sair</span>
+          </div>
         </div>
       </div>
 
