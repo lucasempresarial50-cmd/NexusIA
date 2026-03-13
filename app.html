@@ -488,6 +488,21 @@ function App(){
   const[editingAuto,setEditingAuto]=useState(null);
   const[autoForm,setAutoForm]=useState({name:'',desc:'',icon:'⚡'});
   const[showAutoF,setShowAutoF]=useState(false);
+  // Knowledge base extras
+  const[customKws,setCustomKws]=useState({});          // {nicheId: [kw1,kw2,...]}
+  const[customQA,setCustomQA]=useState([]);             // [{q,a}]
+  const[catalog,setCatalog]=useState([]);               // [{id,name,price,desc,link,img}]
+  const[shopInfo,setShopInfo]=useState({name:'',site:'',hours:'',whatsapp:'',returns:'7 dias',shipping:'',mission:''});
+  const[showKwModal,setShowKwModal]=useState(false);
+  const[showQAModal,setShowQAModal]=useState(false);
+  const[showCatModal,setShowCatModal]=useState(false);
+  const[showShopModal,setShowShopModal]=useState(false);
+  const[catForm,setCatForm]=useState({name:'',price:'',desc:'',link:'',tag:''});
+  const[qaForm,setQaForm]=useState({q:'',a:''});
+  const[kwInput,setKwInput]=useState('');
+  const[editingQA,setEditingQA]=useState(null);
+  const[editingCat,setEditingCat]=useState(null);
+  const[activeKnowTab,setActiveKnowTab]=useState('niches');
   const endRef=useRef(null);
   const iRef=useRef(null);
 
@@ -498,6 +513,8 @@ function App(){
     try { return JSON.parse(localStorage.getItem('nexus_notif_'+u.id)||'[]'); } catch { return []; }
   });
   const unread = notifs.filter(n=>!n.read).length;
+  const allKws = cn ? [...(cn.kws||[]), ...(customKws[activeNiche]||[])] : [];
+  const totalKws = allKws.length;
 
   // Set user info in sidebar + show admin notifications
   useEffect(()=>{
@@ -569,6 +586,27 @@ function App(){
     setHybMode(isH);setNegMode(isN);setLoading(true);
     try{
       let sp=ap.prompt;
+      // Inject shop context
+      if(shopInfo.name) sp+=`\n\n[LOJA] Nome: ${shopInfo.name}`;
+      if(shopInfo.hours) sp+=` | Horário: ${shopInfo.hours}`;
+      if(shopInfo.whatsapp) sp+=` | Contato: ${shopInfo.whatsapp}`;
+      if(shopInfo.shipping) sp+=`\nFrete: ${shopInfo.shipping}`;
+      if(shopInfo.returns) sp+=` | Devolução: ${shopInfo.returns}`;
+      if(shopInfo.mission) sp+=`\nDiferencial: ${shopInfo.mission}`;
+      // Inject catalog
+      if(catalog.length>0){
+        sp+='\n\n[CATÁLOGO DE PRODUTOS]\n';
+        catalog.forEach(p=>{sp+=`- ${p.name}${p.price?' (R$'+p.price+')':''}${p.desc?' – '+p.desc.slice(0,80):''}${p.tag?' ['+p.tag+']':''}\n`;});
+        sp+='Sugira produtos relevantes do catálogo quando apropriado.';
+      }
+      // Inject Q&A
+      if(customQA.length>0){
+        sp+='\n\n[RESPOSTAS FIXAS – use quando identificar a pergunta]\n';
+        customQA.forEach(qa=>{sp+=`P: ${qa.q}\nR: ${qa.a}\n\n`;});
+      }
+      // Inject custom keywords context
+      const myKwsCtx=(customKws[activeNiche]||[]);
+      if(myKwsCtx.length>0) sp+=`\n\n[PALAVRAS-CHAVE IMPORTANTES]: ${myKwsCtx.join(', ')}`;
       if(isH)sp+='\n\n[HYBRID MODE] Cliente em situação delicada. Seja extremamente empático. Tom humano, frases curtas, perguntas abertas. NÃO force vendas agora.';
       if(isN)sp+='\n\n[NEGOTIATION MODE] Cliente resistente a preço. Faça contra-proposta com 2-3 opções: alternativa acessível, parcelamento ou desconto. Seja específico.';
       const hist=[...msgs,um].map(m=>({role:m.role,content:m.content}));
@@ -581,6 +619,7 @@ function App(){
   };
   const hKey=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
   const chipClick=kw=>{if(!hasKey)return;if(!aid){newConv();setTimeout(()=>setInput(kw),160);}else setInput(kw);};
+  const allKwsForChat=[...(cn?.kws||[]),...(customKws[activeNiche]||[])];
 
   const analyzeLost=async()=>{
     if(!ac||!hasKey)return;setLoading(true);
@@ -1000,32 +1039,194 @@ function App(){
 
 
   /* ── KNOWLEDGE ── */
-  const renderKnowledge=()=>(
+  const renderKnowledge=()=>{
+    const myKws = customKws[activeNiche]||[];
+    const kwLimit = 300;
+    const usedKws = (cn?.kws?.length||0) + myKws.length;
+    return(
     <div className="content">
-      <div className="sub-bar"><div className="page-sub">Base de Conhecimento</div></div>
-      <div className="ngrid">
-        {NICHES.map(n=>(
-          <div key={n.id} className={`ncard ${activeNiche===n.id?'on':''}`} onClick={()=>setNiche(n.id)}>
-            {activeNiche===n.id&&<div className="natag">Ativo</div>}
-            <span className="nem">{n.icon}</span>
-            <div className="nn">{n.name}</div>
-            <div className="ns">{n.badge} · {n.kws.length} palavras-chave</div>
-          </div>
-        ))}
+      <div className="sub-bar">
+        <div className="page-sub">Base de Conhecimento</div>
+        <button className="tbtn p" onClick={()=>setShowShopModal(true)}>🏪 Info da Loja</button>
       </div>
-      <div className="div"/>
-      <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginBottom:12}}>Palavras-chave — {cn.name}</div>
-      <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-        {cn.kws.map(kw=>(
-          <button key={kw} style={{padding:'5px 13px',border:'1px solid var(--border)',borderRadius:99,fontSize:11,fontWeight:500,color:'var(--text3)',cursor:'pointer',background:'var(--white)',transition:'all .12s',fontFamily:'Inter,sans-serif'}}
-            onMouseEnter={e=>{e.target.style.borderColor='#10b981';e.target.style.color='#10b981';e.target.style.background='#d1fae5';}}
-            onMouseLeave={e=>{e.target.style.borderColor='var(--border)';e.target.style.color='var(--text3)';e.target.style.background='var(--white)';}}
-            onClick={()=>{newConv();setTimeout(()=>setInput(kw),160);}}>{kw}</button>
-        ))}
-      </div>
-    </div>
-  );
 
+      {/* TABS */}
+      <div style={{display:'flex',gap:0,marginBottom:20,background:'var(--border2)',borderRadius:10,padding:3,width:'fit-content'}}>
+        {[['niches','🏷️ Nichos'],['keywords','🔑 Palavras-chave'],['qa','💬 Perguntas & Respostas'],['catalog','🛍️ Catálogo']].map(([id,label])=>(
+          <button key={id} style={{padding:'7px 16px',borderRadius:8,border:'none',fontFamily:'inherit',fontSize:12,fontWeight:700,cursor:'pointer',transition:'all .15s',
+            background:activeKnowTab===id?'var(--white)':'transparent',
+            color:activeKnowTab===id?'var(--primary)':'var(--text4)',
+            boxShadow:activeKnowTab===id?'0 1px 6px rgba(0,0,0,.08)':'none'
+          }} onClick={()=>setActiveKnowTab(id)}>{label}</button>
+        ))}
+      </div>
+
+      {/* ── TAB: NICHOS ── */}
+      {activeKnowTab==='niches'&&(
+        <>
+          <div className="ngrid">
+            {NICHES.map(n=>(
+              <div key={n.id} className={`ncard ${activeNiche===n.id?'on':''}`} onClick={()=>setNiche(n.id)}>
+                {activeNiche===n.id&&<div className="natag">Ativo</div>}
+                <span className="nem">{n.icon}</span>
+                <div className="nn">{n.name}</div>
+                <div className="ns">{n.badge} · {n.kws.length + (customKws[n.id]||[]).length} kws</div>
+              </div>
+            ))}
+          </div>
+          <div className="div"/>
+          <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:10}}>
+            Nicho selecionado: <span style={{color:'var(--primary)'}}>{cn.name}</span>
+            <span style={{fontSize:11,fontWeight:500,color:'var(--text4)',marginLeft:10}}>Prompt:</span>
+          </div>
+          <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 14px',fontSize:11,color:'var(--text3)',lineHeight:1.7}}>
+            {cn.prompt}
+          </div>
+        </>
+      )}
+
+      {/* ── TAB: PALAVRAS-CHAVE ── */}
+      {activeKnowTab==='keywords'&&(
+        <>
+          {/* Progress bar */}
+          <div style={{background:'var(--white)',border:'1px solid var(--border)',borderRadius:12,padding:'16px 18px',marginBottom:16}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>Palavras-chave — {cn.name}</div>
+              <div style={{fontSize:12,fontWeight:700,color:usedKws>=kwLimit?'var(--red)':'var(--primary)'}}>{usedKws} / {kwLimit}</div>
+            </div>
+            <div style={{height:6,background:'var(--border2)',borderRadius:99,overflow:'hidden',marginBottom:12}}>
+              <div style={{height:'100%',borderRadius:99,background:usedKws/kwLimit>.8?'var(--red)':'var(--primary)',width:`${Math.min(100,(usedKws/kwLimit)*100)}%`,transition:'width .4s'}}/>
+            </div>
+            {/* Add keyword input */}
+            {usedKws < kwLimit && (
+              <div style={{display:'flex',gap:8}}>
+                <input className="fi" placeholder="Digite uma palavra-chave e pressione Enter..." value={kwInput} onChange={e=>setKwInput(e.target.value)}
+                  style={{flex:1,padding:'9px 13px',fontSize:12}}
+                  onKeyDown={e=>{
+                    if(e.key==='Enter'&&kwInput.trim()){
+                      const kw=kwInput.trim();
+                      if(!allKws.includes(kw)){
+                        setCustomKws(p=>({...p,[activeNiche]:[...(p[activeNiche]||[]),kw]}));
+                        setKwInput('');showT('✅ Palavra-chave adicionada!');
+                      }else{showT('⚠️ Palavra-chave já existe');}
+                    }
+                  }}/>
+                <button className="tbtn p" style={{fontSize:12,padding:'9px 16px'}} onClick={()=>{
+                  const kw=kwInput.trim();
+                  if(!kw)return;
+                  if(!allKws.includes(kw)){setCustomKws(p=>({...p,[activeNiche]:[...(p[activeNiche]||[]),kw]}));setKwInput('');showT('✅ Adicionada!');}
+                  else showT('⚠️ Já existe');
+                }}>+ Adicionar</button>
+              </div>
+            )}
+            {usedKws >= kwLimit && <div style={{fontSize:12,color:'var(--red)',fontWeight:600}}>⚠️ Limite de {kwLimit} palavras-chave atingido</div>}
+          </div>
+
+          {/* Keywords padrão do nicho */}
+          <div style={{fontSize:12,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>Padrão do nicho ({cn.kws.length})</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:16}}>
+            {cn.kws.map(kw=>(
+              <span key={kw} style={{padding:'5px 13px',border:'1px solid var(--border)',borderRadius:99,fontSize:11,color:'var(--text3)',background:'var(--white)'}}>{kw}</span>
+            ))}
+          </div>
+
+          {/* Keywords personalizadas */}
+          <div style={{fontSize:12,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>Suas palavras-chave ({myKws.length})</div>
+          {myKws.length===0&&<div style={{fontSize:12,color:'var(--text4)',padding:'20px',textAlign:'center',background:'var(--bg)',borderRadius:10}}>Nenhuma palavra-chave personalizada ainda. Adicione acima! 👆</div>}
+          <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+            {myKws.map((kw,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 10px 5px 13px',border:'1.5px solid var(--primary-m)',borderRadius:99,fontSize:11,color:'var(--primary)',background:'var(--primary-l)'}}>
+                {kw}
+                <button onClick={()=>setCustomKws(p=>({...p,[activeNiche]:p[activeNiche].filter((_,j)=>j!==i)}))} style={{border:'none',background:'none',cursor:'pointer',color:'var(--primary)',fontSize:13,lineHeight:1,padding:0,fontWeight:700}}>×</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── TAB: Q&A ── */}
+      {activeKnowTab==='qa'&&(
+        <>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>Perguntas & Respostas Fixas</div>
+              <div style={{fontSize:11,color:'var(--text4)',marginTop:2}}>O agente usará essas respostas quando identificar a pergunta</div>
+            </div>
+            <button className="tbtn p" onClick={()=>{setEditingQA(null);setQaForm({q:'',a:''});setShowQAModal(true);}}>+ Nova Resposta</button>
+          </div>
+          {customQA.length===0&&(
+            <div style={{textAlign:'center',padding:'40px 20px',background:'var(--bg)',borderRadius:12}}>
+              <div style={{fontSize:36,marginBottom:12}}>💬</div>
+              <div style={{fontSize:14,fontWeight:700,color:'var(--text2)',marginBottom:6}}>Nenhuma resposta cadastrada</div>
+              <div style={{fontSize:12,color:'var(--text4)',marginBottom:14}}>Crie respostas fixas para perguntas frequentes da sua loja</div>
+              <button className="tbtn p" onClick={()=>{setEditingQA(null);setQaForm({q:'',a:''});setShowQAModal(true);}}>Criar primeira resposta</button>
+            </div>
+          )}
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {customQA.map((qa,i)=>(
+              <div key={i} style={{background:'var(--white)',border:'1px solid var(--border)',borderRadius:12,padding:'14px 16px'}}>
+                <div style={{display:'flex',gap:10,marginBottom:8}}>
+                  <span style={{fontSize:18}}>❓</span>
+                  <div style={{flex:1,fontSize:13,fontWeight:700,color:'var(--text)'}}>{qa.q}</div>
+                  <div style={{display:'flex',gap:6,flexShrink:0}}>
+                    <button className="tbtn" style={{fontSize:11,color:'var(--primary)',borderColor:'var(--primary-m)',background:'var(--primary-l)',padding:'4px 10px'}} onClick={()=>{setEditingQA(i);setQaForm({q:qa.q,a:qa.a});setShowQAModal(true);}}>✏️</button>
+                    <button className="tbtn" style={{fontSize:11,color:'var(--red)',borderColor:'#fecaca',padding:'4px 10px'}} onClick={()=>{setCustomQA(p=>p.filter((_,j)=>j!==i));showT('Removido');}}>🗑️</button>
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:10}}>
+                  <span style={{fontSize:18}}>💬</span>
+                  <div style={{fontSize:12,color:'var(--text3)',lineHeight:1.6,flex:1}}>{qa.a.slice(0,120)}{qa.a.length>120?'...':''}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── TAB: CATÁLOGO ── */}
+      {activeKnowTab==='catalog'&&(
+        <>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>Catálogo de Produtos</div>
+              <div style={{fontSize:11,color:'var(--text4)',marginTop:2}}>O agente saberá sugerir e descrever seus produtos nas conversas</div>
+            </div>
+            <button className="tbtn p" onClick={()=>{setEditingCat(null);setCatForm({name:'',price:'',desc:'',link:'',tag:''});setShowCatModal(true);}}>+ Adicionar Produto</button>
+          </div>
+          {catalog.length===0&&(
+            <div style={{textAlign:'center',padding:'40px 20px',background:'var(--bg)',borderRadius:12}}>
+              <div style={{fontSize:36,marginBottom:12}}>🛍️</div>
+              <div style={{fontSize:14,fontWeight:700,color:'var(--text2)',marginBottom:6}}>Catálogo vazio</div>
+              <div style={{fontSize:12,color:'var(--text4)',marginBottom:14}}>Adicione produtos para que a IA possa sugerir e negociar com seus clientes</div>
+              <button className="tbtn p" onClick={()=>{setEditingCat(null);setCatForm({name:'',price:'',desc:'',link:'',tag:''});setShowCatModal(true);}}>Adicionar primeiro produto</button>
+            </div>
+          )}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:12}}>
+            {catalog.map((prod,i)=>(
+              <div key={prod.id||i} style={{background:'var(--white)',border:'1px solid var(--border)',borderRadius:13,overflow:'hidden'}}>
+                <div style={{background:'linear-gradient(135deg,var(--primary-l),#f0ecff)',height:80,display:'flex',alignItems:'center',justifyContent:'center',fontSize:36}}>
+                  {prod.tag==='destaque'?'⭐':prod.tag==='promoção'?'🔥':prod.tag==='novo'?'✨':'📦'}
+                </div>
+                <div style={{padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:6,marginBottom:4}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--text)',flex:1}}>{prod.name}</div>
+                    {prod.tag&&<span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:99,background:prod.tag==='destaque'?'#fef3c7':prod.tag==='promoção'?'#fee2e2':prod.tag==='novo'?'#d1fae5':'var(--border2)',color:prod.tag==='destaque'?'#d97706':prod.tag==='promoção'?'var(--red)':prod.tag==='novo'?'#059669':'var(--text4)',flexShrink:0,textTransform:'uppercase'}}>{prod.tag}</span>}
+                  </div>
+                  {prod.price&&<div style={{fontSize:15,fontWeight:900,color:'var(--primary)',marginBottom:6}}>R$ {prod.price}</div>}
+                  {prod.desc&&<div style={{fontSize:11,color:'var(--text3)',lineHeight:1.5,marginBottom:10}}>{prod.desc.slice(0,70)}{prod.desc.length>70?'...':''}</div>}
+                  <div style={{display:'flex',gap:7}}>
+                    <button className="tbtn" style={{flex:1,fontSize:11,color:'var(--primary)',borderColor:'var(--primary-m)',background:'var(--primary-l)',justifyContent:'center'}} onClick={()=>{setEditingCat(i);setCatForm({name:prod.name,price:prod.price||'',desc:prod.desc||'',link:prod.link||'',tag:prod.tag||''});setShowCatModal(true);}}>✏️ Editar</button>
+                    <button className="tbtn" style={{fontSize:11,color:'var(--red)',borderColor:'#fecaca'}} onClick={()=>{setCatalog(p=>p.filter((_,j)=>j!==i));showT('Produto removido');}}>🗑️</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+    </div>
+  );};
 
   /* ── ANALYTICS ── */
   const renderAnalytics=()=>(
@@ -1188,6 +1389,81 @@ function App(){
 
 
       {/* MODAL — Agent Form */}
+      {/* MODAL — Shop Info */}
+      {showShopModal&&(
+        <div className="ovl" onClick={e=>e.target===e.currentTarget&&setShowShopModal(false)}>
+          <div className="modal" style={{maxWidth:560}}>
+            <div className="modal-t">🏪 Informações da Loja</div>
+            <p className="modal-s">O agente usará essas informações para responder dúvidas sobre sua loja</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div className="fg"><label className="fl">NOME DA LOJA</label><input className="fi" placeholder="Ex: Loja Exemplo" value={shopInfo.name} onChange={e=>setShopInfo(p=>({...p,name:e.target.value}))}/></div>
+              <div className="fg"><label className="fl">SITE / LOJA ONLINE</label><input className="fi" placeholder="www.sualoja.com.br" value={shopInfo.site} onChange={e=>setShopInfo(p=>({...p,site:e.target.value}))}/></div>
+              <div className="fg"><label className="fl">HORÁRIO DE ATENDIMENTO</label><input className="fi" placeholder="Seg-Sex 9h-18h" value={shopInfo.hours} onChange={e=>setShopInfo(p=>({...p,hours:e.target.value}))}/></div>
+              <div className="fg"><label className="fl">WHATSAPP / CONTATO</label><input className="fi" placeholder="(11) 99999-9999" value={shopInfo.whatsapp} onChange={e=>setShopInfo(p=>({...p,whatsapp:e.target.value}))}/></div>
+              <div className="fg"><label className="fl">PRAZO DE DEVOLUÇÃO</label><input className="fi" placeholder="7 dias" value={shopInfo.returns} onChange={e=>setShopInfo(p=>({...p,returns:e.target.value}))}/></div>
+              <div className="fg"><label className="fl">FRETE (política)</label><input className="fi" placeholder="Grátis acima de R$150" value={shopInfo.shipping} onChange={e=>setShopInfo(p=>({...p,shipping:e.target.value}))}/></div>
+            </div>
+            <div className="fg"><label className="fl">DIFERENCIAL / MISSÃO DA LOJA</label><textarea className="ft" rows={2} placeholder="Ex: Maior custo-benefício da região, 10 anos de mercado, especialistas em..." value={shopInfo.mission} onChange={e=>setShopInfo(p=>({...p,mission:e.target.value}))}/></div>
+            <div className="mfoot">
+              <button className="btn-c" onClick={()=>setShowShopModal(false)}>Cancelar</button>
+              <button className="btn-ok" onClick={()=>{setShowShopModal(false);showT('✅ Informações salvas!');}}>Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Q&A */}
+      {showQAModal&&(
+        <div className="ovl" onClick={e=>e.target===e.currentTarget&&setShowQAModal(false)}>
+          <div className="modal">
+            <div className="modal-t">{editingQA!==null?'✏️ Editar Resposta':'Nova Pergunta & Resposta'}</div>
+            <p className="modal-s">O agente usará essa resposta quando identificar a pergunta do cliente</p>
+            <div className="fg"><label className="fl">PERGUNTA DO CLIENTE</label><input className="fi" placeholder="Ex: Vocês têm frete grátis?" value={qaForm.q} onChange={e=>setQaForm(p=>({...p,q:e.target.value}))}/></div>
+            <div className="fg"><label className="fl">RESPOSTA DO AGENTE</label><textarea className="ft" rows={4} placeholder="Ex: Sim! Oferecemos frete grátis para compras acima de R$150 para todo o Brasil..." value={qaForm.a} onChange={e=>setQaForm(p=>({...p,a:e.target.value}))}/></div>
+            <div className="mfoot">
+              <button className="btn-c" onClick={()=>setShowQAModal(false)}>Cancelar</button>
+              <button className="btn-ok" disabled={!qaForm.q||!qaForm.a} onClick={()=>{
+                if(editingQA!==null){setCustomQA(p=>p.map((x,i)=>i===editingQA?qaForm:x));showT('✅ Resposta atualizada!');}
+                else{setCustomQA(p=>[...p,qaForm]);showT('✅ Resposta criada!');}
+                setShowQAModal(false);setEditingQA(null);setQaForm({q:'',a:''});
+              }}>Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Produto */}
+      {showCatModal&&(
+        <div className="ovl" onClick={e=>e.target===e.currentTarget&&setShowCatModal(false)}>
+          <div className="modal" style={{maxWidth:520}}>
+            <div className="modal-t">{editingCat!==null?'✏️ Editar Produto':'🛍️ Novo Produto'}</div>
+            <p className="modal-s">Adicione ao catálogo para que a IA conheça e sugira seus produtos</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div className="fg" style={{gridColumn:'1/-1'}}><label className="fl">NOME DO PRODUTO</label><input className="fi" placeholder="Ex: Tênis Air Max Pro" value={catForm.name} onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}/></div>
+              <div className="fg"><label className="fl">PREÇO (R$)</label><input className="fi" placeholder="199,90" value={catForm.price} onChange={e=>setCatForm(p=>({...p,price:e.target.value}))}/></div>
+              <div className="fg"><label className="fl">TAG</label>
+                <select className="fi" value={catForm.tag} onChange={e=>setCatForm(p=>({...p,tag:e.target.value}))}>
+                  <option value="">Sem tag</option>
+                  <option value="novo">✨ Novo</option>
+                  <option value="destaque">⭐ Destaque</option>
+                  <option value="promoção">🔥 Promoção</option>
+                </select>
+              </div>
+              <div className="fg" style={{gridColumn:'1/-1'}}><label className="fl">DESCRIÇÃO</label><textarea className="ft" rows={3} placeholder="Descreva o produto, materiais, benefícios..." value={catForm.desc} onChange={e=>setCatForm(p=>({...p,desc:e.target.value}))}/></div>
+              <div className="fg" style={{gridColumn:'1/-1'}}><label className="fl">LINK DO PRODUTO (opcional)</label><input className="fi" placeholder="https://sualoja.com/produto" value={catForm.link} onChange={e=>setCatForm(p=>({...p,link:e.target.value}))}/></div>
+            </div>
+            <div className="mfoot">
+              <button className="btn-c" onClick={()=>setShowCatModal(false)}>Cancelar</button>
+              <button className="btn-ok" disabled={!catForm.name} onClick={()=>{
+                if(editingCat!==null){setCatalog(p=>p.map((x,i)=>i===editingCat?{...x,...catForm}:x));showT('✅ Produto atualizado!');}
+                else{setCatalog(p=>[...p,{id:uid(),...catForm}]);showT('✅ Produto adicionado!');}
+                setShowCatModal(false);setEditingCat(null);setCatForm({name:'',price:'',desc:'',link:'',tag:''});
+              }}>Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAF&&(
         <div className="ovl" onClick={e=>e.target===e.currentTarget&&setShowAF(false)}>
           <div className="modal">
