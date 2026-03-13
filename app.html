@@ -493,6 +493,7 @@ function App(){
     const u = JSON.parse(localStorage.getItem('nexus_user')||'{}');
     try { return JSON.parse(localStorage.getItem('nexus_notif_'+u.id)||'[]'); } catch { return []; }
   });
+  const unread = notifs.filter(n=>!n.read).length;
 
   // Set user info in sidebar + show admin notifications
   useEffect(()=>{
@@ -500,9 +501,14 @@ function App(){
     const el = document.getElementById('user-name-sb');
     const av = document.getElementById('user-av-sb');
     const pl = document.getElementById('user-plan-sb');
+    const av2 = document.getElementById('sb-user-av');
+    const av3 = document.getElementById('uav-main');
+    const initial = (u.name||u.email||'U').charAt(0).toUpperCase();
     if(el) el.textContent = u.name || u.email || 'Usuário';
-    if(av) av.textContent = (u.name||u.email||'U').charAt(0).toUpperCase();
+    if(av) av.textContent = initial;
     if(pl) pl.textContent = (u.plan||'starter').toUpperCase();
+    if(av2) av2.textContent = initial;
+    if(av3) av3.textContent = initial;
     const ns = JSON.parse(localStorage.getItem('nexus_notif_'+u.id)||'[]');
     const unr = ns.filter(n=>!n.read);
     if(unr.length>0){
@@ -609,22 +615,7 @@ function App(){
 
   const setNiche=id=>{setActiveNiche(id);const n=NICHES.find(x=>x.id===id);if(n)setPersonas(p=>p.map(x=>x.is_active?{...x,prompt:n.prompt,niche:n.id}:x));showT(`✅ Nicho "${n?.name}" ativado`);};
 
-  const NAV=[
-    {id:'dashboard',icon:'⊞',label:'Painel'},
-    {id:'inbox',icon:'✉',label:'Mensagens',badge:liveC||null},
-    {id:'agents',icon:'🤖',label:'Agentes IA'},
-    {id:'automations',icon:'⚡',label:'Automações',badgeGray:autos.filter(a=>a.active).length||null},
-    {id:'knowledge',icon:'📚',label:'Base de Conhecimento'},
-    {id:'analytics',icon:'📊',label:'Análises'},
-    {id:'settings',icon:'⚙',label:'Configurações'},
-  ];
 
-  const RAIL=[
-    {id:'dashboard',e:'⊞'},{id:'inbox',e:'✉'},{id:'agents',e:'🤖'},
-    {id:'automations',e:'⚡'},{id:'knowledge',e:'📚'},{id:'analytics',e:'📊'},
-  ];
-
-  const PAGE_TITLE={dashboard:'Painel',inbox:'Mensagens',agents:'Agentes IA',automations:'Automações',knowledge:'Base de Conhecimento',analytics:'Análises',settings:'Configurações'};
 
 
   /* ── DASHBOARD ── */
