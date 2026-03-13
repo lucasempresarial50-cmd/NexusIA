@@ -109,7 +109,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
     </div>
     <div>
       <div class="logo-name">Nexus AI</div>
-      <div class="logo-tag">Sales Intelligence Platform</div>
+      <div class="logo-tag">Plataforma de Vendas Inteligente</div>
     </div>
   </div>
 
@@ -240,7 +240,9 @@ async function doLogin() {
 
     showAlert('Login realizado! Redirecionando...', 'ok');
     setTimeout(() => {
-      window.location.href = data.user.role === 'admin' ? '/admin.html' : '/app.html';
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const appUrl = isMobile ? '/app-mobile.html' : '/app.html';
+      window.location.href = data.user.role === 'admin' ? '/admin.html' : appUrl;
     }, 700);
   } catch(e) {
     showAlert(e.message);
