@@ -1002,8 +1002,6 @@ function App(){
   const PAGE_LABELS={dashboard:'Dashboard',inbox:'Mensagens',agents:'Agentes',automations:'Automações',knowledge:'Base',analytics:'Análises',settings:'Config.'};
   const PAGE_ICONS={dashboard:'⊞',inbox:'💬',agents:'🤖',automations:'⚡',knowledge:'📚',analytics:'📊',settings:'⚙️'};
   const BNAV=['dashboard','inbox','agents','analytics','settings'];
-  const unread=notifs.filter(n=>!n.read).length;
-  const liveC=convs.filter(c=>!c.outcome).length;
   const PAGE_TITLES={dashboard:'Início',inbox:'Mensagens',agents:'Agentes IA',automations:'Automações',knowledge:'Base de Conhecimento',analytics:'Análises',settings:'Configurações'};
   const isChat = page==='inbox' && aid && ac;
 
